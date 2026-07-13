@@ -6,6 +6,7 @@ from app.services.ingest import run_ingest
 
 
 def test_run_ingest_is_idempotent_for_records():
+    previous_data_dir = os.environ.get("DATA_DIR")
     with tempfile.TemporaryDirectory() as tmp:
         os.environ["DATA_DIR"] = tmp
         conn = get_conn()
@@ -18,3 +19,7 @@ def test_run_ingest_is_idempotent_for_records():
             assert record_count == 150
         finally:
             conn.close()
+            if previous_data_dir is None:
+                os.environ.pop("DATA_DIR", None)
+            else:
+                os.environ["DATA_DIR"] = previous_data_dir
