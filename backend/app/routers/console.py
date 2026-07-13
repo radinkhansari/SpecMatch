@@ -7,10 +7,12 @@ it is Task 5.
 from pathlib import Path
 
 from fastapi import APIRouter, Query, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from app.core.db import get_conn
+from app.models.schemas import MatchResult, ReviewAction, ReviewRequest, Tier
+from app.routers.matches import review_match
 
 router = APIRouter()
 
@@ -56,8 +58,42 @@ def record_table(request: Request, category: str | None = Query(default=None)):
 
 
 @router.get("/review", response_class=HTMLResponse)
-def review_panel(request: Request):
-    # TODO(Task 5): implement the review panel — yellow/red queues with
-    # counts, candidate scores with per-signal breakdowns, and
-    # accept/override/reject actions that persist through the API.
-    return templates.TemplateResponse(request, "review.html", {})
+def review_panel(request: Request, tier: Tier = Query(default=Tier.yellow)):
+    conn = get_conn()
+    try:
+        tier_rows = conn.execute(
+            "SELECT tier, COUNT(*) AS n FROM matches GROUP BY tier"
+        ).fetchall()
+        rows = conn.execute(
+            "SELECT payload FROM matches WHERE tier = ? ORDER BY record_id LIMIT 50",
+            (tier.value,),
+        ).fetchall()
+    finally:
+        conn.close()
+    counts = {t.value: 0 for t in Tier}
+    counts.update({row["tier"]: row["n"] for row in tier_rows})
+    return templates.TemplateResponse(
+        request,
+        "review.html",
+        {
+            "counts": counts,
+            "matches": [MatchResult.model_validate_json(row["payload"]) for row in rows],
+            "selected_tier": tier,
+            "tiers": list(Tier),
+        },
+    )
+
+
+@router.post("/review/{record_id}/{action}")
+def review_action(
+    record_id: str,
+    action: ReviewAction,
+    catalog_id: str | None = Query(default=None),
+    note: str | None = Query(default=None),
+    tier: Tier = Query(default=Tier.yellow),
+):
+    review_match(
+        record_id,
+        ReviewRequest(action=action, catalog_id=catalog_id, note=note),
+    )
+    return RedirectResponse(f"/review?tier={tier.value}", status_code=303)
