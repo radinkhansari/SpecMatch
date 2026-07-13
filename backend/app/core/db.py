@@ -50,6 +50,16 @@ CREATE TABLE IF NOT EXISTS matches (
     tier TEXT NOT NULL,
     matched_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS match_reviews (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    record_id TEXT NOT NULL,
+    action TEXT NOT NULL,
+    catalog_id TEXT,
+    note TEXT,
+    reviewed_at TEXT NOT NULL,
+    FOREIGN KEY(record_id) REFERENCES matches(record_id)
+);
 """
 
 
