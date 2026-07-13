@@ -14,7 +14,7 @@ Design constraints:
 
 import re
 import sqlite3
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from difflib import SequenceMatcher
 from typing import Any
 
@@ -125,7 +125,10 @@ class WeightedCandidateScorer(CandidateScorer):
         total_weight = sum(weights.get(name, 0.0) for name in signals)
         composite = 0.0
         if total_weight:
-            composite = sum(signals[name] * weights.get(name, 0.0) for name in signals) / total_weight
+            composite = (
+                sum(signals[name] * weights.get(name, 0.0) for name in signals)
+                / total_weight
+            )
         return Candidate(
             catalog_id=entry.catalog_id,
             description=entry.description,
@@ -162,7 +165,9 @@ class LexicalMatchingEngine(MatchingEngine):
         )[: self.settings.matching.top_k]
         top_score = candidates[0].score if candidates else 0.0
         tier = assign_tier(top_score, self.settings.tiers)
-        selected_catalog_id = candidates[0].catalog_id if tier is Tier.green and candidates else None
+        selected_catalog_id = (
+            candidates[0].catalog_id if tier is Tier.green and candidates else None
+        )
         result = MatchResult(
             record_id=source.record_id,
             source_text=source.raw_text,
@@ -170,7 +175,7 @@ class LexicalMatchingEngine(MatchingEngine):
             candidates=candidates,
             selected_catalog_id=selected_catalog_id,
             review=None,
-            matched_at=datetime.now(timezone.utc),
+            matched_at=datetime.now(UTC),
         )
         self._persist(result)
         return result

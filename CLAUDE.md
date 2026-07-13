@@ -1,32 +1,59 @@
 # SpecMatch — AI assistant context
 
-SpecMatch matches messy construction-material records to a canonical
-catalog, assigns confidence tiers, and exposes the results through a
-FastAPI API and a server-rendered (Jinja2) review console.
+SpecMatch matches messy construction-material records to a canonical catalog,
+assigns confidence tiers, exposes results through FastAPI, and provides a
+server-rendered Jinja2 review console.
 
-## Layout
+## Non-negotiable contracts
 
-- `backend/app/` — FastAPI application; `routers/` stay thin, logic lives
-  in `services/`.
-- `backend/app/models/schemas.py` — API contracts. **FROZEN: never modify.**
-- `backend/app/services/matching/` — matching interfaces; the engine
-  implementation goes here.
-- `config/settings.yaml` — scoring weights and tier thresholds. Read them
-  via `app.config.get_settings()`; never hardcode.
-- `data/` — fixture CSVs ingested at startup.
+- `backend/app/models/schemas.py` is frozen. Never modify it.
+- API responses must conform to the frozen Pydantic models.
+- Matching weights and tier thresholds come from `config/settings.yaml`; never
+  hardcode them in engine logic.
+- Tier thresholds are inclusive lower bounds.
+- Review decisions must be persisted and auditable.
+
+## Local architecture
+
+- `backend/app/core/db.py` owns SQLite schema and connection creation.
+- `backend/app/services/ingest.py` treats fixture CSVs as snapshots.
+- `backend/app/services/matching/engine.py` owns lexical retrieval, weighted
+  scoring, tiering, and match persistence.
+- `backend/app/routers/matches.py` owns `/matches` and review API contracts.
+- `backend/app/routers/console.py` owns server-rendered records and review UI.
+- `backend/app/templates/` contains Jinja2 pages.
+
+## Error and logging conventions
+
+Follow `CONTRIBUTING.md`:
+
+- external dependency failures must log a structured `dependency_failure`
+  event with enough context to reproduce
+- wrap dependency failures in `app.core.errors.DependencyError`
+- keep log events structured, not interpolated prose strings
 
 ## Commands
 
-- Run locally: `cd backend && uvicorn app.main:app --reload`
-- Tests: `cd backend && pytest`
-- Full stack: `docker compose up --build` (API + console on :8000)
+```bash
+cd backend
+pytest
+```
 
-## Conventions
+```bash
+python3 -m ruff check .
+```
 
-See CONTRIBUTING.md for the commit, logging, and error-handling rules.
-Follow them in generated code.
+```bash
+docker compose up --build
+```
 
----
+## Implementation guidance
 
-Extend this file with project-specific rules as you work (Section 08 of
-the challenge).
+- Prefer small commits: failing test first, implementation second.
+- Keep router code thin where practical; persistence and matching behavior
+  should remain easy to test.
+- Do not weaken existing tests to hide regressions.
+- Use the existing SQLite store; add schema only when a requirement needs it,
+  such as audit history.
+- Keep review UI behavior consistent with the API review path so there is one
+  source of truth for persisted decisions.

@@ -8,7 +8,7 @@ Runs at application startup, and can be run manually:
 import csv
 import logging
 import sqlite3
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from app.core.db import get_conn, init_schema
@@ -51,7 +51,7 @@ def ingest_catalog(conn: sqlite3.Connection) -> int:
 
 def ingest_records(conn: sqlite3.Connection) -> int:
     rows = _read_csv(SOURCE_CSV)
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     conn.execute("DELETE FROM records")
     conn.executemany(
         "INSERT INTO records (record_id, raw_text, category, unit, quantity, ingested_at)"
