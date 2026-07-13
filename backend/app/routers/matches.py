@@ -1,11 +1,18 @@
 """Match endpoints."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException, Query
 
 from app.core.db import get_conn
-from app.models.schemas import MatchesResponse, MatchResult, Review, ReviewAction, ReviewRequest, Tier
+from app.models.schemas import (
+    MatchesResponse,
+    MatchResult,
+    Review,
+    ReviewAction,
+    ReviewRequest,
+    Tier,
+)
 
 router = APIRouter()
 
@@ -54,7 +61,7 @@ def review_match(record_id: str, body: ReviewRequest) -> MatchResult:
         result = _match_from_payload(row["payload"])
         candidate_ids = {candidate.catalog_id for candidate in result.candidates}
         selected_catalog_id = _selected_catalog_id(body, result, candidate_ids)
-        reviewed_at = datetime.now(timezone.utc)
+        reviewed_at = datetime.now(UTC)
         review = Review(
             action=body.action,
             catalog_id=selected_catalog_id,
