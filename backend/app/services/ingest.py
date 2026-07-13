@@ -52,6 +52,7 @@ def ingest_catalog(conn: sqlite3.Connection) -> int:
 def ingest_records(conn: sqlite3.Connection) -> int:
     rows = _read_csv(SOURCE_CSV)
     now = datetime.now(timezone.utc).isoformat()
+    conn.execute("DELETE FROM records")
     conn.executemany(
         "INSERT INTO records (record_id, raw_text, category, unit, quantity, ingested_at)"
         " VALUES (:record_id, :raw_text, :category, :unit, :quantity, :ingested_at)",

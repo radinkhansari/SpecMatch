@@ -9,6 +9,10 @@ def test_high_score_is_green():
     assert assign_tier(0.95, THRESHOLDS) is Tier.green
 
 
+def test_accept_threshold_score_is_green():
+    assert assign_tier(THRESHOLDS.accept_min, THRESHOLDS) is Tier.green
+
+
 def test_mid_score_is_yellow():
     assert assign_tier(0.70, THRESHOLDS) is Tier.yellow
 
