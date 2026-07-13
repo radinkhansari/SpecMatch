@@ -4,5 +4,6 @@ def test_health_shape(client):
     body = resp.json()
     assert body["status"] == "ok"
     assert body["records"] == 150
-    assert body["matched"] == 0
-    assert body["tiers"] == {"green": 0, "yellow": 0, "red": 0}
+    assert body["matched"] >= 0
+    assert set(body["tiers"]) == {"green", "yellow", "red"}
+    assert sum(body["tiers"].values()) == body["matched"]

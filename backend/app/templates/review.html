@@ -1,10 +1,80 @@
 {% extends "base.html" %}
 {% block title %}Review · SpecMatch{% endblock %}
 {% block content %}
-<h2>Review panel</h2>
-<p class="muted">
-  Not implemented yet (Task 5): work the yellow/red queues — tier counts,
-  top candidates with per-signal score breakdowns, and
-  accept / override / reject actions persisted through the API.
-</p>
+<h2>Review queue</h2>
+<div class="toolbar">
+  <form method="get" action="/review">
+    <label for="tier" class="muted">Tier</label>
+    <select id="tier" name="tier" onchange="this.form.submit()">
+      {% for tier in tiers %}
+      <option value="{{ tier.value }}" {% if selected_tier == tier %}selected{% endif %}>
+        {{ tier.value | title }}
+      </option>
+      {% endfor %}
+    </select>
+    <noscript><button type="submit">Apply</button></noscript>
+  </form>
+  <span class="muted">Green {{ counts.green }}</span>
+  <span class="muted">Yellow {{ counts.yellow }}</span>
+  <span class="muted">Red {{ counts.red }}</span>
+</div>
+
+{% for match in matches %}
+<section style="border: 1px solid var(--border); border-radius: 6px; padding: 16px; margin-bottom: 16px; background: var(--surface);">
+  <div class="toolbar" style="justify-content: space-between; margin-bottom: 8px;">
+    <div>
+      <code>{{ match.record_id }}</code>
+      <span class="muted">{{ match.tier.value | title }}</span>
+    </div>
+    {% if match.review %}
+    <span class="muted">Reviewed: {{ match.review.action.value }}</span>
+    {% endif %}
+  </div>
+
+  <p><code>{{ match.source_text }}</code></p>
+
+  {% if match.candidates %}
+  <form method="post" action="/review/{{ match.record_id }}/accept?tier={{ selected_tier.value }}">
+    <button type="submit">Accept top candidate</button>
+  </form>
+  {% endif %}
+  <form method="post" action="/review/{{ match.record_id }}/reject?tier={{ selected_tier.value }}" style="margin-top: 8px;">
+    <button type="submit">Reject</button>
+  </form>
+
+  <table style="margin-top: 16px;">
+    <thead>
+      <tr>
+        <th>Candidate</th>
+        <th>Score</th>
+        <th>Signals</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for candidate in match.candidates %}
+      <tr>
+        <td>
+          <code>{{ candidate.catalog_id }}</code><br>
+          {{ candidate.description }}
+        </td>
+        <td>{{ "%.3f"|format(candidate.score) }}</td>
+        <td>
+          {% for name, value in candidate.signals.items() %}
+          <code>{{ name }}</code>: {{ "%.3f"|format(value) }}<br>
+          {% endfor %}
+        </td>
+        <td>
+          <form method="post" action="/review/{{ match.record_id }}/override?tier={{ selected_tier.value }}&catalog_id={{ candidate.catalog_id }}">
+            <button type="submit">Override</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% else %}
+<p class="muted">No matches in this queue.</p>
+{% endfor %}
 {% endblock %}

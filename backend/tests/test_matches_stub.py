@@ -43,6 +43,14 @@ def test_list_matches_filters_by_tier(client):
 
 def test_review_match_persists_decision_and_audit_row(client):
     _seed_matches()
+    conn = get_conn()
+    try:
+        before_count = conn.execute(
+            "SELECT COUNT(*) AS count FROM match_reviews WHERE record_id = ?",
+            ("SRC-0004",),
+        ).fetchone()["count"]
+    finally:
+        conn.close()
 
     resp = client.post(
         "/matches/SRC-0004/review",
@@ -63,4 +71,4 @@ def test_review_match_persists_decision_and_audit_row(client):
         ).fetchone()["count"]
     finally:
         conn.close()
-    assert audit_count == 1
+    assert audit_count == before_count + 1
